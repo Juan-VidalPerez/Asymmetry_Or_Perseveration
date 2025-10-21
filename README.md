@@ -77,8 +77,8 @@ Contain results allowing direct figure generation without re-running fits/simula
 
 ### Core Fitting & Simulation
 
-* **`fit_models.m`**: Fits models (RW, CB, PSL, CBPERS) to standard task data (all tasks except C1, C2, C3). *(Formerly `fit_pers_MAP.m`)*
-* **`fit_models_Chambon.m`**: Fits models to observational task data (C1, C2, C3). *(Formerly `fit_pers_Chambon.m`)*
+* `fit_models.m`: Fits models (RW, CB, PSL, CBPERS) to standard task data (all tasks except C1, C2, C3).
+* `fit_models_Chambon.m`: Fits models to observational task data (C1, C2, C3).
 * `simulate_signatures.m`: Simulates data for behavioral signature paradigms (Fig 7).
 * `simulate_newtask.m`: Simulates data for the 4-condition task (Fig 8).
 
@@ -109,7 +109,7 @@ These functions load pre-computed data from `/Data/` and generate figures.
 * Model 3: `[beta, lr1, lr3, tau, phi]`
 * Model 4: `[beta, lr1, lr2, lr3, tau, phi]`
 
-*(Note: `lr1` corresponds to $\alpha_c$, `lr2` to $\alpha_d$)*
+*(Note: `lr1` corresponds to $\alpha_{c}$, `lr2` to $\alpha_{d}$)*
 
 ---
 ## 🚀 Usage
