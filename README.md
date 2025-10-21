@@ -127,8 +127,8 @@ These functions load pre-computed data from `/Data/` and generate figures.
     * **Figure 5a-b, S13 (MLE):** `plot_parametersweep()`
     * **Figure 5c,d,e (MLE):** `plot_fig5_cde()`
     * **Figure 6:** `plot_fig6()`
-    * **Figure 7:** `plot_fig7(50000, 1000)` *(Specify n_sims_a, n_sims_b)*
-    * **Figure 8:** `plot_fig8(10000)` *(Specify n_sims)*
+    * **Figure 7:** `plot_fig7(50000, 1000)`
+    * **Figure 8:** `plot_fig8(10000)`
 
     *(Note: Figures 7 & 8 require `simulate_signatures.m` and `simulate_newtask.m`)*
 
