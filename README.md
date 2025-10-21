@@ -109,7 +109,7 @@ These functions load pre-computed data from `/Data/` and generate figures.
 * Model 3: `[beta, lr1, lr3, tau, phi]`
 * Model 4: `[beta, lr1, lr2, lr3, tau, phi]`
 
-*(Note: `lr1` corresponds to $\alpha_{c}$, `lr2` to $\alpha_{d}$)*
+*(Note: `lr1` corresponds to* $\alpha_{c}$*, `lr2` to* $\alpha_{d}$)
 
 ---
 ## 🚀 Usage
