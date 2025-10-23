@@ -108,16 +108,19 @@ check_conv = NaN(subjecttot, 1);
 for k_sub = 1:subjecttot
         if model == 1
             lb = [0 0];       LB = [0 0];
-            ub = [15 1];       UB = [15 1];
+            ub = [15 1];       UB = [Inf 1];
         elseif model == 2
             lb = [0 0 0];       LB = [0 0 0];
-            ub = [15 1 1];       UB = [15 1 1];
+            ub = [15 1 1];       UB = [Inf 1 1];
         elseif model == 3
-            lb = [0 0 0 -1];       LB = [0 0 0 -Inf];
-            ub = [15 1 1 1];       UB = [Inf 1 1 Inf];
+            lb = [0 0 0 -15];       LB = [0 0 0 -Inf];
+            ub = [15 1 1 15];       UB = [Inf 1 1 Inf];
         elseif model == 4
-            lb = [0 0 0 0 -1];       LB = [0 0 0 0 -Inf];
-            ub = [15 1 1 1 1];       UB = [Inf 1 1 1 Inf];
+            lb = [0 0 0 0 -15];       LB = [0 0 0 0 -Inf];
+            ub = [15 1 1 1 15];       UB = [Inf 1 1 1 Inf];
+        end
+        if strcmp(fit_procedure,'MLE')
+            LB=lb; UB=ub;
         end
         ddb = ub - lb;
         
