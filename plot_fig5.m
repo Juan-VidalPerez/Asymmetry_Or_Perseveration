@@ -1,115 +1,205 @@
-function plot_fig5(varargin) 
-% Generates plots for Figure 5c, 5d, and 5e, showing the distribution of
-% generative negative phi values and the resulting fitted confirmation bias
-% when simulating data with negative perseveration and fitting with CBPERS.
+function plot_fig5()
+% PLOT_FIG5 Generates plots for Figure 5 and Supplementary Figure S18.
+% This function uses a bootstrap analysis to assess whether perseveration 
+% alone (PSL model) can spuriously generate a confirmation bias.
 %
-% USAGE:
-%   plot_fig5()       % --- Uses MLE results (Default)
-%   plot_fig5('MAP')  % --- Uses MAP results
+%   - Figure 5: Absolute CB (Metric 1: alpha_c - alpha_d)
+%   - Figure S18: Normalized CB (Metric 2: (ac-ad)/(ac+ad))
 %
 % REQUIREMENTS:
-%   The file 'figure5_data.mat' must be in the 'Data' subdirectory
-%   relative to this function's location.
+%   The file 'figure5_data.mat' must be in the 'data/' subdirectory.
 
 %% 1. Data Loading and Preparation
-data_path = 'Data'; % Define the data subdirectory
-filename = 'figure5_data.mat';
-full_filepath = fullfile(data_path, filename); % Construct the full path
-fprintf('--- Generating Figure 5c,d,e: Loading data from %s ---\n', full_filepath);
-
-% Set default to MLE and check for optional 'MAP' input.
-fit_type = 'MLE'; % Default changed to MLE
-if nargin > 0 && strcmpi(varargin{1}, 'MAP')
-    fit_type = 'MAP';
-end
-
+fprintf('--- Generating Figure 5 & S18: Loading data... ---\n');
 try
-    data = load(full_filepath); % Load data from the Data subdirectory
+    % Path updated to data/ subdirectory as requested
+    data = load('data/figure5_data.mat');
 catch ME
-    error('Could not load data. Ensure "%s" is in the "%s" subdirectory. Details: %s', filename, data_path, ME.message);
+    error('Could not load data. Ensure "figure5_data.mat" is in the data/ folder. Details: %s', ME.message);
 end
 close all;
 
-% Select the correct data based on the chosen fit type
-if strcmp(fit_type, 'MAP')
-    generative_phi = data.phi_MAP;
-    fitted_params = data.parameters_negphi_MAP;
-else % MLE
-    generative_phi = data.phi_MLE;
-    fitted_params = data.parameters_negphi_MLE;
-end
+% real_data_params: CBPERS model fit on real experimental data.
+real_data_params = data.parameters_CBPERS;
+% sim_data_params: CBPERS model fit on data simulated from the PSL model (Null distribution).
+sim_data_params = data.parameters_CBPERSsim_CBPERSfit;
 
-% --- Calculate Fitted Bias Metrics ---
-if iscell(fitted_params)
-    fitted_params = vertcat(fitted_params{:});
-end
-fitted_cb_abs = fitted_params(:, 2) - fitted_params(:, 3);
-fitted_cb_norm = (fitted_params(:, 2) - fitted_params(:, 3)) ./ (fitted_params(:, 2) + fitted_params(:, 3));
+% --- Configuration ---
+bootstrap_samples = 10000;
+experiments = {'L1','L2','P1','P2','C1','C2','C3','C4','S1a','S1b'};
+colors = struct(...
+    'sim_dist', [181, 101, 118]/255, ... % Color for the PSL-simulated null distribution
+    'real_sig', [181, 101, 118]/255, ... % Color for real data markers if empirical p < 0.05
+    'real_ns',  [1 1 1] ...             % White for non-significant markers
+);
 
-% Perform t-tests vs zero for fitted bias
-[~, p_abs, ~, stats_abs] = ttest(fitted_cb_abs);
-[~, p_norm, ~, stats_norm] = ttest(fitted_cb_norm);
+p_empirical_by_exp = NaN(length(experiments), 2);
 
-%% 2. Plotting Configuration
-colors = {[107, 142, 185]/255, [172, 136, 187]/255}; % Blue for phi, Purple for CB
-plot_data = {generative_phi, fitted_cb_abs, fitted_cb_norm};
-plot_labels = {'Generative \phi', 'Fitted \alpha_c-\alpha_d', 'Fitted Normalized CB'};
-plot_colors = {colors{1}, colors{2}, colors{2}};
+%% 2. By-Experiment Bootstrap Analysis and Plotting
+% Generates a single figure containing both the absolute and normalized metrics.
+figure('Position', [100, 100, 800, 800], 'Name', 'Figure 5 & S18: Experiment-wise');
+sgtitle('Hybrid Bootstrap Analysis', 'FontSize', 16, 'FontWeight', 'bold');
 
-%% 3. Generate Figure
-figure('Position', [100, 100, 900, 400]);
-sgtitle(['Figure 5c,d,e (' fit_type ')'], 'FontSize', 14, 'FontWeight', 'bold');
-for i = 1:3
-    subplot(1, 3, i);
+% metric_idx 1 = Fig 5 (Absolute); metric_idx 2 = S18 (Normalized)
+for metric_idx = 1:2
+    subplot(2, 1, metric_idx);
     hold on;
     
-    current_data = plot_data{i};
-    current_color = plot_colors{i};
-    
-    [counts, bins] = hist(current_data, 15);
-    barh(bins, 1 + counts / (2 * max(counts)), 'FaceColor', current_color, 'FaceAlpha', 0.5);
-    
-    min_val = min(current_data) - 0.1 * range(current_data);
-    max_val = max(current_data) + 0.1 * range(current_data);
-    if isnan(min_val) || isnan(max_val) || isinf(min_val) || isinf(max_val) || range(current_data)==0
-        min_val = -1; max_val = 1; % Handle edge cases gracefully
+    % Loop through experiments in reverse to maintain top-to-bottom visual order
+    for exp_idx = length(experiments):-1:1
+        
+        % --- Bootstrap simulation data ---
+        sim_params_exp = sim_data_params{exp_idx};
+        n_subjects = size(sim_params_exp, 1);
+        n_sims_per_subject = size(sim_params_exp, 4);
+        
+        bootstrapped_means = NaN(bootstrap_samples, 1);
+        for i = 1:bootstrap_samples
+            % Resample subjects with replacement and select a random simulation run
+            resampled_sims_idx = randsample(n_sims_per_subject, n_subjects, true);
+            resampled_anti_idx = randsample(2, n_subjects, true);
+            
+            bootstrap_param_sample = NaN(n_subjects, size(sim_params_exp, 2));
+            for j = 1:n_subjects
+                bootstrap_param_sample(j,:) = sim_params_exp(j,:,resampled_anti_idx(j), resampled_sims_idx(j));
+            end
+            
+            % Compute mean for this bootstrap iteration
+            mean_params = mean(bootstrap_param_sample, 1);
+            if metric_idx == 1
+                bootstrapped_means(i) = mean_params(2) - mean_params(3);
+            else
+                bootstrapped_means(i) = (mean_params(2) - mean_params(3)) / (mean_params(2) + mean_params(3));
+            end
+        end
+        
+        % --- Real data calculation ---
+        real_params_exp = real_data_params{exp_idx};
+        if metric_idx == 1
+            real_data_metric = real_params_exp(:, 2) - real_params_exp(:, 3);
+        else
+            real_data_metric = (real_params_exp(:, 2) - real_params_exp(:, 3)) ./ (real_params_exp(:, 2) + real_params_exp(:, 3));
+        end
+        mean_real_metric = mean(real_data_metric);
+        
+        % --- Empirical p-value ---
+        % Proportions of simulation-based means larger than the observed real mean.
+        p_empirical_by_exp(exp_idx, metric_idx) = mean(bootstrapped_means > mean_real_metric);
+        
+        % --- Visual Plotting ---
+        y_pos = exp_idx * 1.5; 
+        
+        % Plot simulated distribution as horizontal bar histogram
+        [counts, bins] = hist(bootstrapped_means, 20);
+        barh(bins, y_pos + counts / (1.2 * max(counts)), 'FaceColor', colors.sim_dist, 'FaceAlpha', 0.5);
+        
+        % Mask background for overlapping clarity
+        rectangle('Position', [-1, min(bins)-1, y_pos + 1, max(bins)-min(bins)+2], 'FaceColor', 'w', 'EdgeColor', 'w');
+        
+        % Plot the observed real data mean
+        marker_face_color = colors.real_ns;
+        if p_empirical_by_exp(exp_idx, metric_idx) < 0.05
+            marker_face_color = colors.real_sig;
+        end
+        plot(y_pos, mean_real_metric, 'ok', 'MarkerSize', 8, 'MarkerFaceColor', marker_face_color, 'LineWidth', 1.2);
     end
-    rectangle('Position', [-1, min_val, 2.01, max_val - min_val], 'FaceColor', [1 1 1], 'EdgeColor', [1 1 1]);
     
-    plot([-0.5, 2], [0 0], '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 2);
+    % Final aesthetics for experiment plots
+    plot([0.5, 1.5 * length(experiments) + 1], [0, 0], 'k--');
+    xticks(1.5:1.5:(1.5 * length(experiments)));
+    xticklabels(experiments);
+    xlim([0.5, 1.5 * length(experiments) + 1]);
     
-    mean_val = mean(current_data);
-    sem_val = std(current_data) / sqrt(length(current_data));
-    errorbar(0.6, mean_val, sem_val, '.k', 'CapSize', 0, 'LineWidth', 1.3);
-    plot(0.6, mean_val, 'ok', 'MarkerSize', 8, 'MarkerFaceColor', current_color, 'LineWidth', 1.2);
-    
-    xticks(0.8);
-    xticklabels('');
-    ylabel(plot_labels{i});
-    xlim([0, 1.9]);
-    
-    if i == 1 % Generative phi
-         ylim_dynamic = [min_val, max(0.1, max_val)];
-    else % Fitted CB metrics
-        ylim_dynamic = [min(-0.1, min_val), max(0.1, max_val)];
+    if metric_idx == 1
+        ylabel('Absolute Bias (\alpha_c - \alpha_d)'); % Figure 5
+        ylim([-0.25, 0.5]);
+    else
+        ylabel('Normalized Bias'); % S18
+        ylim([-0.5, .8]);
     end
-    % Ensure ylim doesn't become degenerate if min/max are too close
-    if diff(ylim_dynamic) < 1e-6
-        ylim_dynamic = ylim_dynamic + [-0.1, 0.1];
-    end
-    ylim(ylim_dynamic);
-         
 end
-%% 4. Statistical Analyses Output
-fprintf('\n==================================================================\n');
-fprintf('STATISTICAL TESTS FOR FIGURE 5d,e (Fit Type: %s)\n', fit_type);
-fprintf('T-tests comparing fitted bias metrics to zero\n');
-fprintf('==================================================================\n\n');
-fprintf('--- Fitted Absolute CB vs. Zero ---\n');
-fprintf('  Mean = %.4f, SEM = %.4f, t = %.3f, p = %.4f\n', ...
-        mean(fitted_cb_abs), std(fitted_cb_abs)/sqrt(length(fitted_cb_abs)), stats_abs.tstat, p_abs);
-fprintf('\n--- Fitted Normalized CB vs. Zero ---\n');
-fprintf('  Mean = %.4f, SEM = %.4f, t = %.3f, p = %.4f\n', ...
-        mean(fitted_cb_norm), std(fitted_cb_norm)/sqrt(length(fitted_cb_norm)), stats_norm.tstat, p_norm);
-fprintf('\n-------------------------- END OF TESTS --------------------------\n\n');
+xlabel('Experiment');
+
+%% 3. Aggregated Bootstrap Analysis and Plotting
+% Generates a second figure showing the data pooled across all experiments.
+figure('Position', [950, 100, 400, 800], 'Name', 'Aggregated Bootstrap');
+sgtitle('Aggregated Analysis', 'FontSize', 16, 'FontWeight', 'bold');
+p_empirical_agg = NaN(1, 2);
+
+for metric_idx = 1:2
+    subplot(2, 1, metric_idx);
+    hold on;
+    
+    % Calculate grand mean from real data
+    real_means_per_exp = NaN(1, length(experiments));
+    for exp_idx = 1:length(experiments)
+        real_params_exp = real_data_params{exp_idx};
+        if metric_idx == 1
+            real_means_per_exp(exp_idx) = mean(real_params_exp(:, 2) - real_params_exp(:, 3));
+        else
+            real_means_per_exp(exp_idx) = mean((real_params_exp(:, 2) - real_params_exp(:, 3)) ./ (real_params_exp(:, 2) + real_params_exp(:, 3)));
+        end
+    end
+    grand_mean_real = mean(real_means_per_exp);
+    
+    % Bootstrapping the pooled mean
+    bootstrapped_grand_means = NaN(bootstrap_samples, 1);
+    for i = 1:bootstrap_samples
+        mean_across_exps = NaN(1, length(experiments));
+        for exp_idx = 1:length(experiments)
+            sim_params_exp = sim_data_params{exp_idx};
+            n_subjects = size(sim_params_exp, 1);
+            n_sims_per_subject = size(sim_params_exp, 4);
+            
+            res_sim_idx = randsample(n_sims_per_subject, n_subjects, true);
+            res_anti_idx = randsample(2, n_subjects, true);
+            bootstrap_param_sample = NaN(n_subjects, size(sim_params_exp, 2));
+            for j = 1:n_subjects
+                 bootstrap_param_sample(j, :) = sim_params_exp(j,:,res_anti_idx(j), res_sim_idx(j));
+            end
+            
+            mu = mean(bootstrap_param_sample, 1);
+            if metric_idx == 1
+                mean_across_exps(exp_idx) = mu(2) - mu(3);
+            else
+                mean_across_exps(exp_idx) = (mu(2) - mu(3)) / (mu(2) + mu(3));
+            end
+        end
+        bootstrapped_grand_means(i) = mean(mean_across_exps);
+    end
+    
+    p_empirical_agg(metric_idx) = mean(bootstrapped_grand_means > grand_mean_real);
+    
+    % Pooled Plotting
+    x_pos = 1.5;
+    [counts, bins] = hist(bootstrapped_grand_means, 20);
+    barh(bins, x_pos + counts / (1.2 * max(counts)), 'FaceColor', colors.sim_dist, 'FaceAlpha', 0.5);
+    rectangle('Position', [-1, min(bins)-1, x_pos + 1, max(bins)-min(bins)+2], 'FaceColor', 'w', 'EdgeColor', 'w');
+    
+    m_color = colors.real_ns;
+    if p_empirical_agg(metric_idx) < 0.05, m_color = colors.real_sig; end
+    plot(x_pos, grand_mean_real, 'ok', 'MarkerSize', 8, 'MarkerFaceColor', m_color, 'LineWidth', 1.2);
+    
+    plot([0.5, 3], [0, 0], 'k--');
+    xticks(1.5); xticklabels('All Experiments');
+    xlim([0.5, 3]);
+    
+    if metric_idx == 1
+        ylabel('Absolute Bias (\alpha_c - \alpha_d)'); % Figure 5
+        ylim([-0.1, 0.2]);
+    else
+        ylabel('Normalized Bias'); % S18
+        ylim([-0.2, 0.35]);
+    end
+end
+
+%% 4. Statistical Output
+fprintf('\n======================================================\n');
+fprintf('STATISTICAL RESULTS FOR FIGURE 5 & S18\n');
+fprintf('======================================================\n\n');
+for i = 1:length(experiments)
+    fprintf('%-12s | Abs p = %.4f | Norm p = %.4f\n', experiments{i}, p_empirical_by_exp(i,1), p_empirical_by_exp(i,2));
+end
+fprintf('------------------------------------------------------\n');
+fprintf('Pooled Results | Abs p = %.4f | Norm p = %.4f\n', p_empirical_agg(1), p_empirical_agg(2));
 end

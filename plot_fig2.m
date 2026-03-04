@@ -1,151 +1,149 @@
 function plot_fig2(varargin)
-% Generates plots for Figure 2, combining confirmation bias and perseveration.
-%
-% This function creates a single figure with three subplots and prints
-% statistical test results to the command window. By default, it uses data
-% from MAP fits. An optional argument can specify using MLE fits instead.
+% PLOT_FIG2 Generates plots for Figure 2: Confirmation Bias and Perseveration.
 %
 % USAGE:
-%   plot_fig2()           % --- For Figure 2 (uses Data/MAP_fits.mat)
-%   plot_fig2('MLE')      % --- For Figure S10 (uses Data/MLE_fits.mat)
-%
-% INPUT:
-%   varargin{1} (optional) - String, 'MLE', to specify using Maximum
-%                            Likelihood Estimation results. If omitted,
-%                            defaults to 'MAP'.
-%
-% REQUIREMENTS:
-%   The files 'MAP_fits.mat' and/or 'MLE_fits.mat' must be in the 'Data'
-%   subdirectory relative to the location of this function.
+%   plot_fig2()           % Default MAP fits (Figure 2)
+%   plot_fig2('MLE')      % MLE fits (Figure S13)
+%   plot_fig2('MAP_wide') % Wide MAP fits (Figure S7)
 
-%% Data Loading
-data_path = 'Data'; % Define the data subdirectory
-is_mle = false; % Flag for conditional formatting
-filename = 'MAP_fits.mat';
-if nargin > 0 && strcmpi(varargin{1}, 'MLE')
-    filename = 'MLE_fits.mat';
-    is_mle = true;
-end
+    %% 1. Initialization & Data Loading
+    [data, is_mle, filename] = load_figure_data(varargin{:});
+    
+    % Configuration
+    exps   = {'L1','L2','P1','P2','C1','C2','C3','C4','S1a','S1b'};
+    offsets = [-0.5, 0, 0.5];
+    colors = struct('bias', [234, 172, 139; 181, 101, 118; 172, 136, 187] / 255, ...
+                    'pers', [181, 101, 118; 107, 142, 185; 172, 136, 187] / 255);
+    
+    % Stats Containers: [Experiment x Model/Comparison x Metric]
+    p_vs_zero = NaN(length(exps), 3, 3); 
+    p_compare = NaN(length(exps), 2, 3); 
 
-full_filepath = fullfile(data_path, filename); % Construct the full path
-fprintf('--- Generating Figure 2/S10: Loading data from %s ---\n', full_filepath);
+    figure('Position', [100, 100, 1200, 950], 'Color', 'w');
 
-% Load pre-computed model fits.
-try
-    loaded_data = load(full_filepath); % Load into a struct
-catch ME
-    error('Could not load data. Ensure "%s" is in the "%s" subdirectory. Details: %s', filename, data_path, ME.message);
-end
+    %% 2. Main Plotting & Calculation Loop
+    for m_idx = 1:3 % Metric Index: 1=Abs Bias, 2=Norm Bias, 3=Phi
+        subplot(3, 1, m_idx); hold on;
+        
+        % Assign specific models for this metric
+        if m_idx < 3
+            model_group = {data.parameters_CB, data.parameters_CBPERS, data.parameters_PSLsim_CBPERSfit};
+            current_colors = colors.bias;
+        else
+            model_group = {data.parameters_CBPERS, data.parameters_PSL, data.parameters_PSLsim_CBPERSfit};
+            current_colors = colors.pers;
+        end
 
-% Assemble the main parameter cell array that the script expects.
-if ~isfield(loaded_data, 'parameters_CB') || ~isfield(loaded_data, 'parameters_CBPERS') || ~isfield(loaded_data, 'parameters_PSL') || ~isfield(loaded_data, 'parameters_PSLsim_CBPERSfit')
-    error('Could not find required variables in "%s". The file may be corrupt or incomplete.', filename);
-end
-parameters = {loaded_data.parameters_CB, loaded_data.parameters_CBPERS, loaded_data.parameters_PSL, loaded_data.parameters_PSLsim_CBPERSfit};
-
-%% Setup and Initialization
-close all;
-experiments = {'L1','L2','P1','P2','C1','C2','C3','C4','S1a','S1b'};
-offsets = [-0.5, 0, 0.5];
-colors_bias = [234, 172, 139; 181, 101, 118; 172, 136, 187] / 255;
-colors_pers = [181, 101, 118; 107, 142, 185; 172, 136, 187] / 255;
-bias_data = cell(length(experiments), 3, 2); % {exp, model, metric}
-p_bias_vs_zero = NaN(length(experiments), 3, 2);
-p_bias_between_models = NaN(length(experiments), 2, 2);
-p_phi_vs_zero = NaN(length(experiments), 3);
-figure('Position', [100, 100, 1200, 950]);
-
-%% Main Plotting Loop (for 3 subplots)
-for metric_idx = 1:3
-    subplot(3, 1, metric_idx);
-    hold on;
-    if metric_idx == 1 || metric_idx == 2 % CONFIRMATION BIAS PLOTS
-        params_to_plot = {parameters{1}, parameters{2}, parameters{4}};
-        plot_colors = colors_bias;
-    else % PERSEVERATION (PHI) PLOT
-        params_to_plot = {parameters{2}, parameters{3}, parameters{4}};
-        plot_colors = colors_pers;
-    end
-    for exp_idx = 1:length(experiments)
-        for model_idx = 1:3
-            params_current = params_to_plot{model_idx}{exp_idx};
-            if (model_idx == 3) && (ndims(params_current) > 2)
-                 params_current = squeeze(mean(params_current, 3));
+        for e_idx = 1:length(exps)
+            vals = cell(1, 3);
+            
+            for f_idx = 1:3 % Model index within subplot
+                raw_params = model_group{f_idx}{e_idx};
+                
+                % Squeeze simulation data (3D) to 2D if necessary
+                if f_idx == 3 && ndims(raw_params) > 2
+                    raw_params = squeeze(mean(raw_params, 3));
+                end
+                
+                % Calculate metric and store for stats
+                vals{f_idx} = calculate_metric_values(raw_params, m_idx);
+                
+                % Plot Data Point
+                x_pos = e_idx * 3 + offsets(f_idx);
+                render_point(x_pos, vals{f_idx}, current_colors(f_idx, :));
+                
+                % Statistical Test: vs Zero
+                [~, p_vs_zero(e_idx, f_idx, m_idx)] = ttest(vals{f_idx});
             end
-            if metric_idx == 1 % Absolute confirmation bias
-                metric_value = params_current(:, 2) - params_current(:, 3);
-                bias_data{exp_idx, model_idx, 1} = metric_value;
-                [~, p_bias_vs_zero(exp_idx, model_idx, 1)] = ttest(metric_value);
-            elseif metric_idx == 2 % Normalized confirmation bias
-                metric_value = (params_current(:, 2) - params_current(:, 3)) ./ (params_current(:, 2) + params_current(:, 3));
-                bias_data{exp_idx, model_idx, 2} = metric_value;
-                [~, p_bias_vs_zero(exp_idx, model_idx, 2)] = ttest(metric_value);
-            else % Perseveration weight phi
-                metric_value = params_current(:, end);
-                [~, p_phi_vs_zero(exp_idx, model_idx)] = ttest(metric_value);
-            end
-            x_pos = exp_idx * 3 + offsets(model_idx);
-            sem = std(metric_value) / sqrt(length(metric_value));
-            errorbar(x_pos, mean(metric_value), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
-            plot(x_pos, mean(metric_value), 'ko', 'MarkerFaceColor', plot_colors(model_idx, :), 'MarkerSize', 8, 'LineWidth', 1.3);
+            
+            % Statistical Test: Between Models (1 vs 2, 2 vs 3)
+            [~, p_compare(e_idx, 1, m_idx)] = ttest(vals{1}, vals{2});
+            [~, p_compare(e_idx, 2, m_idx)] = ttest(vals{2}, vals{3});
         end
         
-        if metric_idx == 1 % Absolute bias:
-            [~, p_bias_between_models(exp_idx, 1, 1)] = ttest(bias_data{exp_idx, 1, 1}, bias_data{exp_idx, 2, 1}); % CB vs CBPERS
-            [~, p_bias_between_models(exp_idx, 2, 1)] = ttest(bias_data{exp_idx, 2, 1}, bias_data{exp_idx, 3, 1}); % CBPERS vs PSLsim
-        elseif metric_idx == 2% Normalized bias:
-            [~, p_bias_between_models(exp_idx, 1, 2)] = ttest(bias_data{exp_idx, 1, 2}, bias_data{exp_idx, 2, 2}); % CB vs CBPERS
-            [~, p_bias_between_models(exp_idx, 2, 2)] = ttest(bias_data{exp_idx, 2, 2}, bias_data{exp_idx, 3, 2}); % CBPERS vs PSLsim
-        end
+        apply_formatting(m_idx, exps, is_mle);
     end
-    plot([0, length(experiments) * 3 + 3], [0, 0], 'k--', 'LineWidth', 1.3);
-    xlim([0, length(experiments) * 3 + 3]);
-    set(gca, 'FontSize', 12, 'LineWidth', 1.2);
-    if metric_idx == 1
-        ylabel('\alpha_c - \alpha_d');
-        if is_mle
-            ylim([-0.2, 0.4]);
-        end
-        legend({'', 'Data (CB fit)', '', 'Data (CBPERS fit)', '', 'PSL sim (CBPERS fit)'}, ...
-               'Orientation', 'horizontal', 'Location', 'northwest', 'Box', 'off');
-        xticklabels({});
-    elseif metric_idx == 2
-        ylabel('(\alpha_c - \alpha_d)/(\alpha_c + \alpha_d)');
-        xticklabels({});
-    else % metric_idx == 3
-        ylabel('\phi');
-        if is_mle
-            ylim([-1, 8]);
-        else
-            ylim([-0.1, 3]);
-        end
-        xticks([1:length(experiments)] * 3);
-        xticklabels(experiments);
-        xlabel('Experiment', 'FontSize', 14);
-        legend({'', 'Data (CBPERS fit)', '', 'Data (PSL fit)', '', 'PSL sim (CBPERS fit)'}, ...
-               'Orientation', 'horizontal', 'Location', 'northwest', 'Box', 'off');
+
+    %% 3. Output Detailed Statistics
+    display_stats_report(p_vs_zero, p_compare, filename);
+end
+
+%% --- Support Functions ---
+
+function [data, is_mle, fname] = load_figure_data(varargin)
+    is_mle = nargin > 0 && strcmpi(varargin{1}, 'MLE');
+    if is_mle
+        fname = 'MLE_fits.mat';
+    elseif nargin > 0 && strcmpi(varargin{1}, 'MAP_wide')
+        fname = 'MAP_fits_wide.mat';
+    else
+        fname = 'MAP_fits.mat';
+    end
+
+    full_path = fullfile('Data', fname);
+    try
+        data = load(full_path);
+        fprintf('--- Generating Figure: Loading %s ---\n', full_path);
+    catch ME
+        error('Could not load %s. Ensure it is in the "Data" folder. Error: %s', fname, ME.message);
     end
 end
-%% Display Statistics in Command Window 📊
-fprintf('\n======================================================\n');
-fprintf('STATISTICAL TESTS (using data from %s)\n', upper(filename));
-fprintf('======================================================\n\n');
-fprintf('--- CONFIRMATION BIAS: T-tests vs. Zero ---\n\n');
-fprintf('Absolute Bias (alpha_c - alpha_d):\n');
-fprintf('Rows are experiments, Columns are models (1=CB, 2=CBPERS, 3=PSLsim)\n');
-disp(p_bias_vs_zero(:, :, 1));
-fprintf('Normalized Bias:\n');
-fprintf('Rows are experiments, Columns are models (1=CB, 2=CBPERS, 3=PSLsim)\n');
-disp(p_bias_vs_zero(:, :, 2));
-fprintf('\n--- CONFIRMATION BIAS: Between-Model T-tests ---\n\n');
-fprintf('Absolute Bias (alpha_c - alpha_d):\n');
-fprintf('Rows are experiments, Columns are comparisons (1=CB vs CBPERS, 2=CBPERS vs PSLsim)\n');
-disp(p_bias_between_models(:, :, 1));
-fprintf('Normalized Bias:\n');
-fprintf('Rows are experiments, Columns are comparisons (1=CB vs CBPERS, 2=CBPERS vs PSLsim)\n');
-disp(p_bias_between_models(:, :, 2));
-fprintf('\n--- PERSEVERATION (phi): T-tests vs. Zero ---\n\n');
-fprintf('Rows are experiments, Columns are models (1=CBPERS, 2=PSL, 3=PSLsim)\n');
-disp(p_phi_vs_zero);
-fprintf('-------------------- END OF TESTS --------------------\n\n');
+
+function v = calculate_metric_values(p, type)
+    switch type
+        case 1 % Absolute Bias: (Alpha_Confirm - Alpha_Disconfirm)
+            v = p(:, 2) - p(:, 3);
+        case 2 % Normalized Bias
+            v = (p(:, 2) - p(:, 3)) ./ (p(:, 2) + p(:, 3));
+        case 3 % Perseveration (Phi)
+            v = p(:, end);
+    end
+end
+
+function render_point(x, data_vec, col)
+    mu = mean(data_vec);
+    err = std(data_vec) / sqrt(length(data_vec));
+    errorbar(x, mu, err, '.k', 'CapSize', 0, 'LineWidth', 1.3, 'HandleVisibility', 'off');
+    plot(x, mu, 'ko', 'MarkerFaceColor', col, 'MarkerSize', 8, 'LineWidth', 1.3);
+end
+
+function apply_formatting(idx, exps, is_mle)
+    plot(xlim, [0 0], 'k--', 'LineWidth', 1.3, 'HandleVisibility', 'off');
+    set(gca, 'FontSize', 12, 'LineWidth', 1.2, 'Box', 'off', 'TickDir', 'out');
+    xlim([0, length(exps) * 3 + 3]);
+
+    if idx == 1
+        ylabel('\alpha_c - \alpha_d');
+        if is_mle, ylim([-0.2, 0.4]); end
+        legend({'Data (LA fit)', 'Data (hybrid fit)', 'PSL sim (hybrid fit)'}, ...
+               'Orientation', 'horizontal', 'Location', 'northwest');
+    elseif idx == 2
+        ylabel('(\alpha_c - \alpha_d)/(\alpha_c + \alpha_d)');
+    else
+        ylabel('\phi');
+        if is_mle, ylim([-1, 8]); else, ylim([-0.1, 3]); end
+        xticks(3:3:length(exps)*3);
+        xticklabels(exps);
+        xlabel('Experiment', 'FontSize', 14);
+        legend({'Data (hybrid fit)', 'Data (PSL fit)', 'PSL sim (hybrid fit)'}, ...
+               'Orientation', 'horizontal', 'Location', 'northwest');
+    end
+end
+
+function display_stats_report(p_zero, p_comp, fname)
+    fprintf('\n======================================================\n');
+    fprintf('STATISTICAL TESTS (Data: %s)\n', upper(fname));
+    fprintf('======================================================\n');
+    
+    titles = {'ABS CONFIRMATION BIAS', 'NORM CONFIRMATION BIAS', 'PERSEVERATION (PHI)'};
+    comp_labels = {'1 vs 2', '2 vs 3'};
+    
+    for i = 1:3
+        fprintf('\n--- %s ---\n', titles{i});
+        fprintf('T-tests vs Zero (Models 1, 2, 3):\n');
+        disp(p_zero(:,:,i));
+        fprintf('Between-Model T-tests (%s):\n', strjoin(comp_labels, ', '));
+        disp(p_comp(:,:,i));
+    end
+    fprintf('-------------------- END OF TESTS --------------------\n\n');
 end
