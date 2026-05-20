@@ -4,7 +4,7 @@ function plot_fig5()
 % alone (PSL model) can spuriously generate a confirmation bias.
 %
 %   - Figure 5: Absolute CB (Metric 1: alpha_c - alpha_d)
-%   - Figure S18: Normalized CB (Metric 2: (ac-ad)/(ac+ad))
+%   - Figure S20: Normalized CB (Metric 2: (ac-ad)/(ac+ad))
 %
 % REQUIREMENTS:
 %   The file 'figure5_data.mat' must be in the 'data/' subdirectory.

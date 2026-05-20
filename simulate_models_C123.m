@@ -35,21 +35,21 @@ switch experiment
         % Block types: 0 = all free choice, 1 = intermixed free/forced
         observational_blocks = [0 1 0 1];
         default_n_sessions = 3;
-        n_trials_per_block = 40;
+        n_trials_per_block = 40; % free trials per block
         has_counterfactual = 0;
         
     case 'C2' % Observational complete
         p_rew = [0.6 0.9; 0.6 0.9; 0.1 0.4; 0.1 0.4];
         observational_blocks = [1 1 1 1]; % All blocks are intermixed
-        default_n_sessions = 2;
-        n_trials_per_block = 20;
+        default_n_sessions = 4;
+        n_trials_per_block = 40; % free trials per block
         has_counterfactual = 1;
         
     case 'C3' % Observational symmetric/asymmetric
         p_rew = [0.5 0.5; 0.3 0.7; 0.5 0.5; 0.3 0.7];
         observational_blocks = [0 1 0 1];
         default_n_sessions = 3;
-        n_trials_per_block = 20;
+        n_trials_per_block = 20; % free trials per block
         has_counterfactual = 0;
 end
 
@@ -100,11 +100,11 @@ for ss = 1:size(parameters, 1)
             if observational_blocks(bb) == 0 % All trials are free choice
                 trial_types = ones(1, n_trials_per_block);
             else % Intermixed block: half free, half forced, randomized
-                trial_types = repelem([1 0], n_trials_per_block / 2);
+                trial_types = repelem([1 0], n_trials_per_block);
                 trial_types = trial_types(randperm(length(trial_types)));
             end
 
-            for tt = 1:n_trials_per_block
+            for tt = 1:length(trial_types)
                 trial_is_free = trial_types(tt); % 1 = free, 0 = forced
                 
                 % 1. Make a choice

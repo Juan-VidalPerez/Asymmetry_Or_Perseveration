@@ -1,9 +1,9 @@
-function plot_figS6_S15(varargin)
-% PLOT_FIGS6_S15 Generates plots for Figures S6 and S15: Confirmation Bias and Perseveration.
+function plot_figS6_S16(varargin)
+% PLOT_FIGS6_S16 Generates plots for Figures S6 and S16: Confirmation Bias and Perseveration.
 %
 % USAGE:
-%   plot_figS6_S15()        % Default MAP fits
-%   plot_figS6_S15('MLE')   % MLE fits
+%   plot_figS6_S16()        % Default MAP fits
+%   plot_figS6_S16('MLE')   % MLE fits
 
     %% 1. Initialization & Data Loading
     [data, is_mle, filename] = load_figure_data(varargin{:});
@@ -114,14 +114,14 @@ function style_axes(idx, exps, is_mle)
 
     if idx < 3
         xticklabels({});
-        legend({'Data (LA fit)', 'Data (hybrid fit)', 'CB sim (hybrid fit)'}, ...
+        legend({'Data (LA fit)', 'Data (hybrid fit)', 'LA sim (hybrid fit)'}, ...
                'Orientation', 'horizontal', 'Location', 'northwest');
         if is_mle && idx == 1, ylim([-0.2, 0.4]); end
     else
         xticks(3:3:length(exps)*3);
         xticklabels(exps);
         xlabel('Experiment', 'FontSize', 14);
-        legend({'Data (hybrid fit)', 'Data (PSL fit)', 'CB sim (hybrid fit)'}, ...
+        legend({'Data (hybrid fit)', 'Data (PSL fit)', 'LA sim (hybrid fit)'}, ...
                'Orientation', 'horizontal', 'Location', 'northwest');
         if is_mle, ylim([-1, 8]); else, ylim([-0.1, 3]); end
     end

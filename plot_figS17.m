@@ -1,5 +1,5 @@
-function plot_figS16()
-% PLOT_FIGS16 Generates Supplementary Figure S16.
+function plot_figS17()
+% Generates Supplementary Figure S17.
 %
 % This function performs a parameter sweep analysis to characterize which 
 % parameters of the Pure Learning Asymmetry (LA) model most strongly drive 
@@ -10,17 +10,17 @@ function plot_figS16()
 % perseveration parameter (phi) recovered by the full hybrid model.
 %
 % REQUIREMENTS:
-%   The file 'figureS16_data.mat' must be in the 'data/' path.
+%   The file 'figureS17_data.mat' must be in the 'data/' path.
 
 %% 1. Data Loading and Preparation
-fprintf('--- Generating Figure S16: Loading LA Parameter Sweep data... ---\n');
+fprintf('--- Generating Figure S17: Loading LA Parameter Sweep data... ---\n');
 
 
 try
     % Loading the sweep data specifically for perseveration (phi) recovery
-    data = load('data/figureS16_data.mat');
+    data = load('data/figureS17_data.mat');
 catch ME
-    error('Could not load data. Ensure "figureS16_data.mat" is in the data folder. Details: %s', ME.message);
+    error('Could not load data. Ensure "figureS17_data.mat" is in the data folder. Details: %s', ME.message);
 end
 close all;
 
@@ -35,7 +35,7 @@ swept_param_labels = {'\beta', '\alpha_c', '\alpha_d', '\alpha_c-\alpha_d'};
 num_swept_params = length(params_fitted_sweep);
 
 %% 2. Generate Figure
-figure('Position', [100, 100, 1200, 400], 'Color', 'w', 'Name', 'Figure S16');
+figure('Position', [100, 100, 1200, 400], 'Color', 'w', 'Name', 'Figure S17');
 
 % Color for fitted perseveration (phi) - Light green/sage
 color_pers = [151, 189, 161] / 255; 

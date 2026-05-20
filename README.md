@@ -1,4 +1,4 @@
-# Code and Data for: Learning Asymmetry Or Perseveration? A Critical Re-Evaluation And Solution To A Pervasive Confound
+# Code and Data for: Learning asymmetry or perseveration? Disentangling overlapping mechanisms in behavioral modeling
 
 This repository contains the MATLAB code and data necessary to reproduce the computational modeling analyses and main figures presented in the paper.
 
@@ -65,14 +65,14 @@ Contain results allowing direct figure generation without re-running fits/simula
 * `figure3bc_data.mat`: Results for hybrid model recovery (Fig 3b,c).
     * `parameters_CBPERSgener_MAP`/`MLE`: Generative parameters used (cell array per experiment).
     * `parameters_CBPERSfitted_MAP`/`MLE`: Recovered parameters after fitting (cell array per experiment).
-* `figure4a_fits.mat`: Data for recovery vs. session length (Fig 4a, S9, S16).
+* `figure4a_fits.mat`: Data for recovery vs. session length (Fig 4a, S9, S17).
     * `parameters_PSL_MAP`/`MLE`: Generative PSL parameters.
     * `parameters_PSLsim_CBPERSfit_MAP`/`MLE`: Fitted CBPERS parameters. Data is a {1 x 10} cell array where each cell contains a `[session_length x simulation x parameter]` matrix (200 simulations for MAP, 4000 for MLE).
     * `session_length_MAP`/`MLE`: Vector indicating the number of sessions simulated.
-*`figure5_data.mat`: Data for negative perseveration analysis and APPS (Fig 5, S12).
+*`figure5_data.mat`: Data for negative perseveration analysis and APPS (Fig 5, S13).
     * `parameters_CBPERS`: Hybrid fits of the experimental data `[participant x parameter]`.
     * `parameters_CBPERSsim_CBPERSfit`: Fits used to generate the APPS null distribution `[participant x parameter x anti-perseveration x simulation]`.
-* `parameters_sweep.mat`: Data from parameter sweeps (Fig 4b, S10, S18).
+* `parameters_sweep.mat`: Data from parameter sweeps (Fig 4b, S10, S20).
     * `parameters_sweep_MAP`/`MLE`: Cell array {swept param} of fitted params `[simulation x parameter x swept_value]`.
     * `swept_MAP`/`MLE`: Cell array {swept param} of swept values.
     * `generative_MAP`/`MLE`: Base generative parameters.
@@ -97,9 +97,9 @@ These functions load pre-computed data from `/Data/` and generate figures.
 * `plot_fig4b.m`: Negative phi effects (Figure 4b).
 * `plot_fig5.m`: APPS analysis on the dataset (Figure 5).
 * `plot_fig6.m`: Behavioral signatures (Figure 6).
-* `plot_figS15.m`: Parameter recovery sweep (Supplementary Figure 15).
-* `plot_figS19.m`: Supplementary analysis (Supplementary Figure 19).
-* `plot_figS5_S14.m`: Combined plots for Supplementary Figures 5 and 14.
+* `plot_figS17.m`: Parameter recovery sweep (Supplementary Figure 17).
+* `plot_figS22.m`: Supplementary analysis (Supplementary Figure 22).
+* `plot_figS6_S16.m`: Combined plots for Supplementary Figures 6 and 16.
 * `plot_CBsweep.m`: Independent confirmation bias sweep analysis.
 
 ### Parameter Order in Fitting Functions
@@ -140,13 +140,12 @@ These functions load pre-computed data from `/Data/` and generate figures.
     *(Note: Figures 7 & 8 require `simulate_signatures.m` and `simulate_newtask.m`)*
 
     Other SI figures:
-    * **Figure S6:** `plot_figS6_S15()`
+    * **Figure S6:** `plot_figS6_S16()`
     * **Figure S10 (MAP):** `plot_fig4a('MAP')`
-    * **Figure S11 (MLE):** `plot_fig4b('MLE')`
-    * **Figure S13 (MLE):** `plot_fig2('MLE')`
-    * **Figure S15:** `plot_figS6_S15('MLE')`
-    * **Figure S16:** `plot_figS20()`
-    * **Figure S20:** `plot_figS20()`
+    * **Figure S12 (MLE):** `plot_fig4b('MLE')`
+    * **Figure S14 (MLE):** `plot_fig2('MLE')`
+    * **Figure S17:** `plot_figS6_S17('MLE')`
+    * **Figure S22:** `plot_figS22()`
 
 
 ### Running Model Fits (Example)

@@ -1,5 +1,5 @@
-function plot_figS20() 
-% PLOT_S20 Generates supplementary figure S20 (MLE only).
+function plot_figS22() 
+% PLOT_S22 Generates supplementary figure S22 (MLE only).
 %
 % This function shows the distribution of generative negative phi values 
 % and the resulting spurious fitted confirmation bias (alpha_c - alpha_d) 
@@ -12,10 +12,10 @@ function plot_figS20()
 
 %% 1. Data Loading and Preparation
 data_path = 'Data'; 
-filename = 'figureS20_data.mat';
+filename = 'figureS22_data.mat';
 full_filepath = fullfile(data_path, filename); 
 
-fprintf('--- Generating Figure S20: Loading MLE data from %s ---\n', full_filepath);
+fprintf('--- Generating Figure S22: Loading MLE data from %s ---\n', full_filepath);
 
 try
     data = load(full_filepath); 
@@ -48,8 +48,8 @@ plot_labels = {'Generative \phi', 'Fitted \alpha_c-\alpha_d', 'Fitted Normalized
 plot_colors = {colors{1}, colors{2}, colors{2}};
 
 %% 3. Generate Figure
-figure('Position', [100, 100, 900, 400], 'Color', 'w', 'Name', 'Figure S20 (MLE)');
-sgtitle('Figure S20: Negative Perseveration Analysis (MLE)', 'FontSize', 14, 'FontWeight', 'bold');
+figure('Position', [100, 100, 900, 400], 'Color', 'w', 'Name', 'Figure S22 (MLE)');
+sgtitle('Figure S22: Negative Perseveration Analysis (MLE)', 'FontSize', 14, 'FontWeight', 'bold');
 
 for i = 1:3
     subplot(1, 3, i);
@@ -103,7 +103,7 @@ end
 
 %% 4. Statistical Analyses Output
 fprintf('\n==================================================================\n');
-fprintf('STATISTICAL TESTS FOR FIGURE S20 (MLE Estimation)\n');
+fprintf('STATISTICAL TESTS FOR FIGURE S22 (MLE Estimation)\n');
 fprintf('Comparing fitted bias metrics to 0 (Ground Truth)\n');
 fprintf('==================================================================\n\n');
 fprintf('--- Fitted Absolute CB vs. Zero ---\n');

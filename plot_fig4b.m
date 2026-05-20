@@ -11,8 +11,8 @@ function plot_fig4b(varargin)
 %   - Figure S19: Detailed MLE sweep across all generative parameters.
 %
 % USAGE:
-%   plot_fig4b()         % Default: MLE fits (Fig 4b, S19)
-%   plot_fig4b('MAP')    % MAP fits (Fig S11)
+%   plot_fig4b()         % Default: MLE fits (Fig 4b, S21)
+%   plot_fig4b('MAP')    % MAP fits (Fig S12)
 
 %% 1. Data Loading and Preparation
 fit_type = 'MLE';

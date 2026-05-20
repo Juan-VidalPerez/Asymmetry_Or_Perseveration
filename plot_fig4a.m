@@ -5,7 +5,7 @@ function plot_fig4a(varargin)
 % The x-axis is scaled such that ticks only appear at powers of 2.
 %
 % USAGE:
-%   plot_fig4a()         % Default: MLE fits (Fig 4a, S17)
+%   plot_fig4a()         % Default: MLE fits (Fig 4a, S18)
 %   plot_fig4a('MAP')    % MAP fits (Fig S10)
 
 %% -------------------- Data Loading and Preparation --------------------

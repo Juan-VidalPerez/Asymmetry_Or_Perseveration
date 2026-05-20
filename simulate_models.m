@@ -43,10 +43,10 @@ function [sim_data] = simulate_models(parameters, model, experiment, varargin)
 
     if is_chambon
         % Output: {sta, cho, out, cou, free}
-        [sim_data] = simulate_models_Chambon(parameters, model, experiment, varargin{:});
+        [sim_data] = simulate_models_C123(parameters, model, experiment, varargin{:});
     else
         % Output: {sta, cho, out, cou}
-        [sim_data] = simulate_models_noChambon(parameters, model, experiment, varargin{:});
+        [sim_data] = simulate_models_noC123(parameters, model, experiment, varargin{:});
     end
 
 end

@@ -3,7 +3,7 @@ function plot_fig2(varargin)
 %
 % USAGE:
 %   plot_fig2()           % Default MAP fits (Figure 2)
-%   plot_fig2('MLE')      % MLE fits (Figure S13)
+%   plot_fig2('MLE')      % MLE fits (Figure S14)
 %   plot_fig2('MAP_wide') % Wide MAP fits (Figure S7)
 
     %% 1. Initialization & Data Loading
@@ -111,6 +111,8 @@ function apply_formatting(idx, exps, is_mle)
     plot(xlim, [0 0], 'k--', 'LineWidth', 1.3, 'HandleVisibility', 'off');
     set(gca, 'FontSize', 12, 'LineWidth', 1.2, 'Box', 'off', 'TickDir', 'out');
     xlim([0, length(exps) * 3 + 3]);
+    xticks(3:3:length(exps)*3);
+    xticklabels(exps);
 
     if idx == 1
         ylabel('\alpha_c - \alpha_d');
@@ -122,8 +124,6 @@ function apply_formatting(idx, exps, is_mle)
     else
         ylabel('\phi');
         if is_mle, ylim([-1, 8]); else, ylim([-0.1, 3]); end
-        xticks(3:3:length(exps)*3);
-        xticklabels(exps);
         xlabel('Experiment', 'FontSize', 14);
         legend({'Data (hybrid fit)', 'Data (PSL fit)', 'PSL sim (hybrid fit)'}, ...
                'Orientation', 'horizontal', 'Location', 'northwest');

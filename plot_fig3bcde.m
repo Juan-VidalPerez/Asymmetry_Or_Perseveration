@@ -254,13 +254,13 @@ fprintf('  CB Error (MAP vs MLE):  mean diff = %.3f, t = %.3f, p = %.4f\n', mean
 
 fprintf('\n--- Part 3d: Aggregated MAP vs. MLE t-tests on REAL data ---\n');
 fprintf('  CB difference:        mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(1), t_all_c(1), p_all_c(1));
-fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(2), t_all_c(2), p_all_c(2));
-fprintf('  Phi difference:       mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(3), t_all_c(3), p_all_c(3));
+fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(3), t_all_c(3), p_all_c(3));
+fprintf('  Phi difference:       mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(2), t_all_c(2), p_all_c(2));
 
 fprintf('\n--- Part 3e: Aggregated MAP vs. MLE t-tests on SIMULATED data ---\n');
 fprintf('  CB difference:        mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(1), t_all_e(1), p_all_e(1));
-fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(2), t_all_e(2), p_all_e(2));
-fprintf('  Phi error difference: mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(3), t_all_e(3), p_all_e(3));
+fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(3), t_all_e(3), p_all_e(3));
+fprintf('  Phi error difference: mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(2), t_all_e(2), p_all_e(2));
 
 fprintf('\n-------------------- END OF TESTS --------------------\n\n');
 end
