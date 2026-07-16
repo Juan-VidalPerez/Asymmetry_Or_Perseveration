@@ -90,7 +90,6 @@ colors_d = {[172, 136, 187]/255, [107, 142, 185]/255, [172, 136, 187]/255};
 
 for metric_idx = 1:3
     subplot(1, 3, metric_idx); hold on;
-    mean_vals_across_exp = NaN(10, 2);
     
     for fit_idx = 1:2 % 1=MAP, 2=MLE
         vbi = [];
@@ -112,7 +111,6 @@ for metric_idx = 1:3
                 metric_val = fitted_avg(:, end) - generating(:, end);
             end
             vbi = [vbi; metric_val]; 
-            mean_vals_across_exp(exp_idx, fit_idx) = mean(metric_val); 
         end
         
         sem = std(vbi) / sqrt(length(vbi)); 
@@ -136,11 +134,17 @@ end
 figure('Position', [500, 300, 900, 400], 'Name', 'Figure 3d');
 sgtitle('Figure 3d: Aggregated Comparison on Real Data', 'FontSize', 16, 'FontWeight', 'bold');
 colors_c = {[172, 136, 187]/255, [107, 142, 185]/255, [172, 136, 187]/255};
-p_all_c = NaN(1, 3); t_all_c = NaN(1, 3); mean_diff_c = NaN(1, 3);
+
+% Preallocate arrays to store full statistical objects
+p_all_c = NaN(1, 3); t_all_c = NaN(1, 3); df_all_c = NaN(1, 3);
+mean_diff_c = NaN(1, 3); ci_all_c = cell(1, 3); d_all_c = NaN(1, 3);
+n_all_c = NaN(1, 3);
+
+% Preallocate data container to store fully pooled MAP and MLE values
+pooled_data_c = cell(3, 2); 
 
 for metric_idx = 1:3
     subplot(1, 3, metric_idx); hold on;
-    mean_vals_across_exp = NaN(10, 2);
     
     for fit_idx = 1:2 % 1=MAP, 2=MLE
         vbi = [];
@@ -154,17 +158,24 @@ for metric_idx = 1:3
                 metric_val = fitted(:, end);
             end
             vbi= [vbi; metric_val]; 
-            mean_vals_across_exp(exp_idx, fit_idx) = mean(metric_val); 
         end
+       
+        % Store the pooled subject-level data
+        pooled_data_c{metric_idx, fit_idx} = vbi;
        
         sem = std(vbi) / sqrt(length(vbi)); 
         errorbar(fit_idx, mean(vbi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
         plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_c{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
     end
     
-    [~, p_all_c(metric_idx), ~, stats_c] = ttest(mean_vals_across_exp(:, 1), mean_vals_across_exp(:, 2));
+    % Paired t-test on the fully pooled parameters
+    diff_scores = pooled_data_c{metric_idx, 1} - pooled_data_c{metric_idx, 2};
+    [~, p_all_c(metric_idx), ci_all_c{metric_idx}, stats_c] = ttest(pooled_data_c{metric_idx, 1}, pooled_data_c{metric_idx, 2});
     t_all_c(metric_idx) = stats_c.tstat;
-    mean_diff_c(metric_idx) = mean(mean_vals_across_exp(:, 1) - mean_vals_across_exp(:, 2));
+    df_all_c(metric_idx) = stats_c.df;
+    n_all_c(metric_idx) = length(diff_scores);
+    mean_diff_c(metric_idx) = mean(diff_scores);
+    d_all_c(metric_idx) = mean(diff_scores) / std(diff_scores); % Cohen's d for paired samples
     
     plot([0, 3], [0, 0], 'k--');
     xlim([0.5, 2.5]); xticks([1, 2]); xticklabels({'MAP', 'MLE'});
@@ -181,11 +192,17 @@ end
 %% -------------------- Figure 3e: Aggregated MAP vs. MLE Comparison (Simulated PSL) --------------------
 figure('Position', [700, 400, 900, 400], 'Name', 'Figure 3e');
 sgtitle('Figure 3e: Aggregated Comparison on Simulated Data (PSL simulation)', 'FontSize', 16, 'FontWeight', 'bold');
-p_all_e = NaN(1, 3); t_all_e = NaN(1, 3); mean_diff_e = NaN(1, 3);
+
+% Preallocate arrays to store full statistical objects
+p_all_e = NaN(1, 3); t_all_e = NaN(1, 3); df_all_e = NaN(1, 3);
+mean_diff_e = NaN(1, 3); ci_all_e = cell(1, 3); d_all_e = NaN(1, 3);
+n_all_e = NaN(1, 3);
+
+% Preallocate data container to store fully pooled MAP and MLE values for 1-sample tests
+pooled_data_e = cell(3, 2); 
 
 for metric_idx = 1:3
     subplot(1, 3, metric_idx); hold on;
-    mean_vals_across_exp = NaN(10, 2);
     
     for fit_idx = 1:2 % 1=MAP, 2=MLE
         vbi = [];
@@ -207,17 +224,24 @@ for metric_idx = 1:3
                 metric_val = fitted_avg(:, end) - generating(:, end);
             end
             vbi = [vbi; metric_val]; 
-            mean_vals_across_exp(exp_idx, fit_idx) = mean(metric_val); 
         end
+        
+        % Store the pooled subject-level data
+        pooled_data_e{metric_idx, fit_idx} = vbi;
         
         sem = std(vbi) / sqrt(length(vbi)); 
         errorbar(fit_idx, mean(vbi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
         plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_d{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
     end
     
-    [~, p_all_e(metric_idx), ~, stats_e] = ttest(mean_vals_across_exp(:, 1), mean_vals_across_exp(:, 2));
+    % Paired t-test on the fully pooled parameters
+    diff_scores = pooled_data_e{metric_idx, 1} - pooled_data_e{metric_idx, 2};
+    [~, p_all_e(metric_idx), ci_all_e{metric_idx}, stats_e] = ttest(pooled_data_e{metric_idx, 1}, pooled_data_e{metric_idx, 2});
     t_all_e(metric_idx) = stats_e.tstat;
-    mean_diff_e(metric_idx) = mean(mean_vals_across_exp(:, 1) - mean_vals_across_exp(:, 2));
+    df_all_e(metric_idx) = stats_e.df;
+    n_all_e(metric_idx) = length(diff_scores);
+    mean_diff_e(metric_idx) = mean(diff_scores);
+    d_all_e(metric_idx) = mean(diff_scores) / std(diff_scores); % Cohen's d for paired samples
     
     plot([0, 3], [0, 0], 'k--');
     xlim([0.5, 2.5]); xticks([1, 2]); xticklabels({'MAP', 'MLE'});
@@ -232,35 +256,66 @@ for metric_idx = 1:3
 end
 
 %% -------------------- Statistical Analyses Output --------------------
-fprintf('\n======================================================\n');
-fprintf('STATISTICAL TESTS FOR FIGURE 3\n');
-fprintf('======================================================\n\n');
+fprintf('\n========================================================================================\n');
+fprintf('STATISTICAL TESTS FOR FIGURE 3 (NATURE COMMS FORMAT)\n');
+fprintf('========================================================================================\n\n');
 
-fprintf('--- Part 3b-c: Recovery Error T-Tests (vs. Zero) ---\n');
-[~, p_map_phi_err, ~, stats_map_phi] = ttest(recovery_errors{1, 1});
-[~, p_mle_phi_err, ~, stats_mle_phi] = ttest(recovery_errors{2, 1});
-[~, p_map_cb_err, ~, stats_map_cb] = ttest(recovery_errors{1, 2});
-[~, p_mle_cb_err, ~, stats_mle_cb] = ttest(recovery_errors{2, 2});
-fprintf('  MAP Phi Error vs 0: mean = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{1,1}), stats_map_phi.tstat, p_map_phi_err);
-fprintf('  MLE Phi Error vs 0: mean = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{2,1}), stats_mle_phi.tstat, p_mle_phi_err);
-fprintf('  MAP CB Error vs 0:  mean = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{1,2}), stats_map_cb.tstat, p_map_cb_err);
-fprintf('  MLE CB Error vs 0:  mean = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{2,2}), stats_mle_cb.tstat, p_mle_cb_err);
+fprintf('--- Part 3b-c: Recovery Error One-Sample T-Tests (vs. Zero) ---\n');
+% Helper function for clean output string generation
+format_stats_1samp = @(data, p, ci, st) sprintf('M = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n = %d', ...
+    mean(data), ci(1), ci(2), st.df, st.tstat, p, mean(data)/std(data), length(data));
 
-fprintf('\n--- Part 3b-c: Recovery Error Comparison (MAP vs. MLE) ---\n');
-[~, p_pers, ~, stats_pers] = ttest2(recovery_errors{1, 1}, recovery_errors{2, 1});
-[~, p_cb, ~, stats_cb] = ttest2(recovery_errors{1, 2}, recovery_errors{2, 2});
-fprintf('  Phi Error (MAP vs MLE): mean diff = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{1,1})-mean(recovery_errors{2,1}), stats_pers.tstat, p_pers);
-fprintf('  CB Error (MAP vs MLE):  mean diff = %.3f, t = %.3f, p = %.4f\n', mean(recovery_errors{1,2})-mean(recovery_errors{2,2}), stats_cb.tstat, p_cb);
+[~, p_map_phi_err, ci_map_phi_err, stats_map_phi] = ttest(recovery_errors{1, 1});
+[~, p_mle_phi_err, ci_mle_phi_err, stats_mle_phi] = ttest(recovery_errors{2, 1});
+[~, p_map_cb_err, ci_map_cb_err, stats_map_cb] = ttest(recovery_errors{1, 2});
+[~, p_mle_cb_err, ci_mle_cb_err, stats_mle_cb] = ttest(recovery_errors{2, 2});
 
-fprintf('\n--- Part 3d: Aggregated MAP vs. MLE t-tests on REAL data ---\n');
-fprintf('  CB difference:        mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(1), t_all_c(1), p_all_c(1));
-fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(3), t_all_c(3), p_all_c(3));
-fprintf('  Phi difference:       mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_c(2), t_all_c(2), p_all_c(2));
+fprintf('  MAP Phi Error vs 0: %s\n', format_stats_1samp(recovery_errors{1,1}, p_map_phi_err, ci_map_phi_err, stats_map_phi));
+fprintf('  MLE Phi Error vs 0: %s\n', format_stats_1samp(recovery_errors{2,1}, p_mle_phi_err, ci_mle_phi_err, stats_mle_phi));
+fprintf('  MAP CB Error vs 0:  %s\n', format_stats_1samp(recovery_errors{1,2}, p_map_cb_err, ci_map_cb_err, stats_map_cb));
+fprintf('  MLE CB Error vs 0:  %s\n', format_stats_1samp(recovery_errors{2,2}, p_mle_cb_err, ci_mle_cb_err, stats_mle_cb));
 
-fprintf('\n--- Part 3e: Aggregated MAP vs. MLE t-tests on SIMULATED data ---\n');
-fprintf('  CB difference:        mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(1), t_all_e(1), p_all_e(1));
-fprintf('  Normalized CB diff:   mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(3), t_all_e(3), p_all_e(3));
-fprintf('  Phi error difference: mean diff = %.3f, t = %.3f, p = %.4f\n', mean_diff_e(2), t_all_e(2), p_all_e(2));
 
-fprintf('\n-------------------- END OF TESTS --------------------\n\n');
+fprintf('\n--- Part 3b-c: Recovery Error Comparison Independent T-Tests (MAP vs. MLE) ---\n');
+% For independent t-tests, Cohen's d uses pooled standard deviation
+calc_d_indep = @(d1, d2) (mean(d1) - mean(d2)) / sqrt(((length(d1)-1)*var(d1) + (length(d2)-1)*var(d2))/(length(d1)+length(d2)-2));
+format_stats_2samp = @(d1, d2, p, ci, st) sprintf('M_diff = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n1 = %d, n2 = %d', ...
+    mean(d1)-mean(d2), ci(1), ci(2), st.df, st.tstat, p, calc_d_indep(d1,d2), length(d1), length(d2));
+
+[~, p_pers, ci_pers, stats_pers] = ttest2(recovery_errors{1, 1}, recovery_errors{2, 1});
+[~, p_cb, ci_cb, stats_cb] = ttest2(recovery_errors{1, 2}, recovery_errors{2, 2});
+
+fprintf('  Phi Error (MAP vs MLE): %s\n', format_stats_2samp(recovery_errors{1,1}, recovery_errors{2,1}, p_pers, ci_pers, stats_pers));
+fprintf('  CB Error (MAP vs MLE):  %s\n', format_stats_2samp(recovery_errors{1,2}, recovery_errors{2,2}, p_cb, ci_cb, stats_cb));
+
+
+fprintf('\n--- Part 3d: Aggregated MAP vs. MLE Paired t-tests on REAL data (Pooled) ---\n');
+format_stats_paired = @(idx, c, m, df, t, p, d, n) sprintf('M_diff = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n = %d', ...
+    m(idx), c{idx}(1), c{idx}(2), df(idx), t(idx), p(idx), d(idx), n(idx));
+
+fprintf('  CB difference:        %s\n', format_stats_paired(1, ci_all_c, mean_diff_c, df_all_c, t_all_c, p_all_c, d_all_c, n_all_c));
+fprintf('  Phi difference:       %s\n', format_stats_paired(2, ci_all_c, mean_diff_c, df_all_c, t_all_c, p_all_c, d_all_c, n_all_c));
+fprintf('  Normalized CB diff:   %s\n', format_stats_paired(3, ci_all_c, mean_diff_c, df_all_c, t_all_c, p_all_c, d_all_c, n_all_c));
+
+
+fprintf('\n--- Part 3e: Aggregated MAP vs. MLE Paired t-tests on SIMULATED data (Pooled) ---\n');
+fprintf('  CB difference:        %s\n', format_stats_paired(1, ci_all_e, mean_diff_e, df_all_e, t_all_e, p_all_e, d_all_e, n_all_e));
+fprintf('  Phi error difference: %s\n', format_stats_paired(2, ci_all_e, mean_diff_e, df_all_e, t_all_e, p_all_e, d_all_e, n_all_e));
+fprintf('  Normalized CB diff:   %s\n', format_stats_paired(3, ci_all_e, mean_diff_e, df_all_e, t_all_e, p_all_e, d_all_e, n_all_e));
+
+
+fprintf('\n--- Part 3e: Individual One-Sample t-tests (vs. Zero) on SIMULATED data (Pooled) ---\n');
+metric_names_e = {'CB (fitted - generating)', 'Phi error (fitted - generating)', 'Normalized CB'};
+fit_names = {'MAP', 'MLE'};
+
+for m = 1:3
+    for f = 1:2
+        data_col = pooled_data_e{m, f};
+        [~, p_val, ci, stats] = ttest(data_col);
+        fprintf('  %s %-32s: %s\n', fit_names{f}, metric_names_e{m}, ...
+            format_stats_1samp(data_col, p_val, ci, stats));
+    end
+end
+
+fprintf('\n-------------------------------- END OF TESTS --------------------------------\n\n');
 end
