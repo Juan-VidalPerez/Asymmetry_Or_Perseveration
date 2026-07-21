@@ -28,18 +28,21 @@ catch ME
 end
 close all;
 
-% --- Prepare data for Recovery Analysis (Fig 3b) ---
+% --- Prepare data for Recovery Analysis (Fig 3b & 3c) ---
 generated_params = {recovery_data.parameters_CBPERSgener_MAP, recovery_data.parameters_CBPERSgener_MLE};
 fitted_params = {recovery_data.parameters_CBPERSfitted_MAP, recovery_data.parameters_CBPERSfitted_MLE};
 fit_types = {'MAP', 'MLE'};
 recovery_errors = cell(2, 2); 
-phi_generating_all = cell(1,2);
 
 % --- Prepare data for Aggregated Comparisons (Fig 3d & 3e) ---
 params_agg_real_fitted = {map_data.parameters_CBPERS, mle_data.parameters_CBPERS};
 params_agg_real_generating = {map_data.parameters_PSL, mle_data.parameters_PSL}; 
 params_agg_sim_fitted = {map_data.parameters_PSLsim_CBPERSfit, mle_data.parameters_PSLsim_CBPERSfit};
 params_agg_sim_generating = {map_data.parameters_PSL, mle_data.parameters_PSL}; 
+
+% --- Color Palette (Used for both Fig 3c and 3d to ensure matching) ---
+colors_unified = {[172, 136, 187]/255, [107, 142, 185]/255, [172, 136, 187]/255};
+
 
 %% -------------------- Figure 3b: Parameter Recovery Scatter Plots --------------------
 figure('Position', [100, 100, 800, 700], 'Name', 'Figure 3b');
@@ -54,15 +57,16 @@ for i = 1:2 % Loop over MAP (1) and MLE (2)
         gen_matrix_exp = generated_params{i}{exp_idx};
         fit_matrix_exp = fitted_params{i}{exp_idx};
         
-        gen_phi_vec = [gen_phi_vec; gen_matrix_exp(:, end)];
-        fit_phi_vec = [fit_phi_vec; fit_matrix_exp(:, end)];
-        gen_cb_vec = [gen_cb_vec; gen_matrix_exp(:, 2) - gen_matrix_exp(:, 3)];
-        fit_cb_vec = [fit_cb_vec; fit_matrix_exp(:, 2) - fit_matrix_exp(:, 3)];
+        % Flatten the 3D matrices (or 2D if already flattened) to plot ALL points
+        gen_phi_vec = [gen_phi_vec; reshape(gen_matrix_exp(:, end, :), [], 1)];
+        fit_phi_vec = [fit_phi_vec; reshape(fit_matrix_exp(:, end, :), [], 1)];
+        
+        cb_gen = reshape(gen_matrix_exp(:, 2, :) - gen_matrix_exp(:, 3, :), [], 1);
+        cb_fit = reshape(fit_matrix_exp(:, 2, :) - fit_matrix_exp(:, 3, :), [], 1);
+        
+        gen_cb_vec = [gen_cb_vec; cb_gen];
+        fit_cb_vec = [fit_cb_vec; cb_fit];
     end
-    
-    recovery_errors{i, 1} = fit_phi_vec - gen_phi_vec;
-    recovery_errors{i, 2} = fit_cb_vec - gen_cb_vec;
-    phi_generating_all{i} = gen_phi_vec;
     
     subplot(2, 2, i);
     scatter(gen_phi_vec, fit_phi_vec, 10, color_scatter{1}, 'filled', 'MarkerFaceAlpha', 0.15);
@@ -84,56 +88,76 @@ end
 
 %% -------------------- Figure 3c: Recovery Error Summary (Hybrid simulation) --------------------
 figure('Position', [500, 300, 900, 400], 'Name', 'Figure 3c');
-sgtitle('Figure 3c: Aggregated Recovery Error (Hybrid simulation)', 'FontSize', 16, 'FontWeight', 'bold');
+sgtitle('Figure 3c: Aggregated Recovery Error (Participant Averages)', 'FontSize', 16, 'FontWeight', 'bold');
 marker_shapes_agg = {'o', 's'};
-colors_d = {[172, 136, 187]/255, [107, 142, 185]/255, [172, 136, 187]/255};
 
-for metric_idx = 1:3
-    subplot(1, 3, metric_idx); hold on;
+for fit_idx = 1:2 % 1=MAP, 2=MLE
+    vbi_cb = []; vbi_phi = []; vbi_norm = []; 
     
-    for fit_idx = 1:2 % 1=MAP, 2=MLE
-        vbi = [];
-        for exp_idx = 1:10
-            fitted = fitted_params{fit_idx}{exp_idx};
-            generating = generated_params{fit_idx}{exp_idx};
-            
-            if ndims(fitted) > 2 && size(fitted,3) > 1
-                fitted_avg = squeeze(mean(fitted, 3));
-            else
-                fitted_avg = fitted;
-            end
-            
-            if metric_idx == 1
-                metric_val = fitted_avg(:, 2) - fitted_avg(:, 3) - (generating(:, 2) - generating(:, 3));
-            elseif metric_idx == 3
-                metric_val = (fitted_avg(:, 2) - fitted_avg(:, 3)) ./ (fitted_avg(:, 2) + fitted_avg(:, 3)) - (generating(:, 2) - generating(:, 3)) ./ (generating(:, 2) + generating(:, 3));
-            else 
-                metric_val = fitted_avg(:, end) - generating(:, end);
-            end
-            vbi = [vbi; metric_val]; 
+    for exp_idx = 1:10
+        fitted = fitted_params{fit_idx}{exp_idx};
+        generating = generated_params{fit_idx}{exp_idx};
+        
+        % Average across the 3rd dimension (simulations) for each participant
+        if ndims(fitted) > 2
+            fitted = squeeze(mean(fitted, 3));
+        end
+        if ndims(generating) > 2
+            generating = squeeze(mean(generating, 3));
         end
         
-        sem = std(vbi) / sqrt(length(vbi)); 
-        errorbar(fit_idx, mean(vbi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
-        plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_d{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+        % Calculate errors using the averaged parameters
+        cb_err = (fitted(:, 2) - fitted(:, 3)) - (generating(:, 2) - generating(:, 3));
+        phi_err = fitted(:, end) - generating(:, end);
+        norm_err = ((fitted(:, 2) - fitted(:, 3)) ./ (fitted(:, 2) + fitted(:, 3))) - ...
+                   ((generating(:, 2) - generating(:, 3)) ./ (generating(:, 2) + generating(:, 3)));
+        
+        vbi_cb = [vbi_cb; cb_err];
+        vbi_phi = [vbi_phi; phi_err]; 
+        vbi_norm = [vbi_norm; norm_err];
     end
     
+    % Store the N=509 participant averages for the statistical tests
+    recovery_errors{fit_idx, 1} = vbi_phi;
+    recovery_errors{fit_idx, 2} = vbi_cb;
+    
+    % Plot 1: Absolute CB Error
+    subplot(1, 3, 1); hold on;
+    sem = std(vbi_cb) / sqrt(length(vbi_cb)); 
+    errorbar(fit_idx, mean(vbi_cb), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
+    plot(fit_idx, mean(vbi_cb), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_unified{1}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+    
+    % Plot 2: Phi Error (Order swapped to match Fig 3d)
+    subplot(1, 3, 2); hold on;
+    sem = std(vbi_phi) / sqrt(length(vbi_phi)); 
+    errorbar(fit_idx, mean(vbi_phi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
+    plot(fit_idx, mean(vbi_phi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_unified{2}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+    
+    % Plot 3: Norm CB Error (Order swapped to match Fig 3d)
+    subplot(1, 3, 3); hold on;
+    sem = std(vbi_norm) / sqrt(length(vbi_norm)); 
+    errorbar(fit_idx, mean(vbi_norm), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
+    plot(fit_idx, mean(vbi_norm), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_unified{3}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+end
+
+% Formatting for Fig 3c
+for metric_idx = 1:3
+    subplot(1, 3, metric_idx);
     plot([0, 3], [0, 0], 'k--');
     xlim([0.5, 2.5]); xticks([1, 2]); xticklabels({'MAP', 'MLE'});
     if metric_idx == 1
         ylabel('CB_{fitted} - CB_{generating}'); ylim([-0.04, 0.06]);
         legend({'','MAP','','MLE'}, 'Orientation', 'horizontal', 'Location', 'southoutside');
-    elseif metric_idx == 3
-        ylabel('Norm. CB Error'); ylim([-0.2, 0.8]);
-    else
+    elseif metric_idx == 2
         ylabel('\phi_{fitted} - \phi_{generating}'); ylim([-.4, .1]);
+    else
+        ylabel('Norm. CB Error'); ylim([-0.2, 0.8]);
     end
 end
 
 %% -------------------- Figure 3d: Aggregated MAP vs. MLE Comparison (Real Data) --------------------
 figure('Position', [500, 300, 900, 400], 'Name', 'Figure 3d');
 sgtitle('Figure 3d: Aggregated Comparison on Real Data', 'FontSize', 16, 'FontWeight', 'bold');
-colors_c = {[172, 136, 187]/255, [107, 142, 185]/255, [172, 136, 187]/255};
 
 % Preallocate arrays to store full statistical objects
 p_all_c = NaN(1, 3); t_all_c = NaN(1, 3); df_all_c = NaN(1, 3);
@@ -165,7 +189,7 @@ for metric_idx = 1:3
        
         sem = std(vbi) / sqrt(length(vbi)); 
         errorbar(fit_idx, mean(vbi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
-        plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_c{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+        plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_unified{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
     end
     
     % Paired t-test on the fully pooled parameters
@@ -231,7 +255,7 @@ for metric_idx = 1:3
         
         sem = std(vbi) / sqrt(length(vbi)); 
         errorbar(fit_idx, mean(vbi), sem, '.k', 'CapSize', 0, 'LineWidth', 1.3);
-        plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_d{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
+        plot(fit_idx, mean(vbi), marker_shapes_agg{fit_idx}, 'MarkerFaceColor', colors_unified{metric_idx}, 'MarkerEdgeColor', 'k', 'MarkerSize', 10, 'LineWidth', 1.3);
     end
     
     % Paired t-test on the fully pooled parameters
@@ -260,7 +284,7 @@ fprintf('\n=====================================================================
 fprintf('STATISTICAL TESTS FOR FIGURE 3 (NATURE COMMS FORMAT)\n');
 fprintf('========================================================================================\n\n');
 
-fprintf('--- Part 3b-c: Recovery Error One-Sample T-Tests (vs. Zero) ---\n');
+fprintf('--- Part 3b-c: Recovery Error One-Sample T-Tests (vs. Zero, N=509) ---\n');
 % Helper function for clean output string generation
 format_stats_1samp = @(data, p, ci, st) sprintf('M = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n = %d', ...
     mean(data), ci(1), ci(2), st.df, st.tstat, p, mean(data)/std(data), length(data));
@@ -276,17 +300,16 @@ fprintf('  MAP CB Error vs 0:  %s\n', format_stats_1samp(recovery_errors{1,2}, p
 fprintf('  MLE CB Error vs 0:  %s\n', format_stats_1samp(recovery_errors{2,2}, p_mle_cb_err, ci_mle_cb_err, stats_mle_cb));
 
 
-fprintf('\n--- Part 3b-c: Recovery Error Comparison Independent T-Tests (MAP vs. MLE) ---\n');
-% For independent t-tests, Cohen's d uses pooled standard deviation
-calc_d_indep = @(d1, d2) (mean(d1) - mean(d2)) / sqrt(((length(d1)-1)*var(d1) + (length(d2)-1)*var(d2))/(length(d1)+length(d2)-2));
-format_stats_2samp = @(d1, d2, p, ci, st) sprintf('M_diff = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n1 = %d, n2 = %d', ...
-    mean(d1)-mean(d2), ci(1), ci(2), st.df, st.tstat, p, calc_d_indep(d1,d2), length(d1), length(d2));
+fprintf('\n--- Part 3b-c: Recovery Error Comparison Paired T-Tests (MAP vs. MLE, N=509) ---\n');
+calc_d_paired = @(d1, d2) mean(d1 - d2) / std(d1 - d2);
+format_stats_paired_err = @(d1, d2, p, ci, st) sprintf('M_diff = %6.3f, 95%% CI = [%6.3f, %6.3f], t(%d) = %6.3f, p = %6.4e, d = %6.3f, n = %d', ...
+    mean(d1 - d2), ci(1), ci(2), st.df, st.tstat, p, calc_d_paired(d1, d2), length(d1));
 
-[~, p_pers, ci_pers, stats_pers] = ttest2(recovery_errors{1, 1}, recovery_errors{2, 1});
-[~, p_cb, ci_cb, stats_cb] = ttest2(recovery_errors{1, 2}, recovery_errors{2, 2});
+[~, p_pers, ci_pers, stats_pers] = ttest(recovery_errors{1, 1}, recovery_errors{2, 1});
+[~, p_cb, ci_cb, stats_cb] = ttest(recovery_errors{1, 2}, recovery_errors{2, 2});
 
-fprintf('  Phi Error (MAP vs MLE): %s\n', format_stats_2samp(recovery_errors{1,1}, recovery_errors{2,1}, p_pers, ci_pers, stats_pers));
-fprintf('  CB Error (MAP vs MLE):  %s\n', format_stats_2samp(recovery_errors{1,2}, recovery_errors{2,2}, p_cb, ci_cb, stats_cb));
+fprintf('  Phi Error (MAP vs MLE): %s\n', format_stats_paired_err(recovery_errors{1,1}, recovery_errors{2,1}, p_pers, ci_pers, stats_pers));
+fprintf('  CB Error (MAP vs MLE):  %s\n', format_stats_paired_err(recovery_errors{1,2}, recovery_errors{2,2}, p_cb, ci_cb, stats_cb));
 
 
 fprintf('\n--- Part 3d: Aggregated MAP vs. MLE Paired t-tests on REAL data (Pooled) ---\n');
